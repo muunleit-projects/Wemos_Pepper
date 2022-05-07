@@ -7,6 +7,11 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
+/*
+ * for DEBUG-Mode set "true"
+ */
+#define DEBUGMODE false
+
 // Switch is connected to Pin D4
 #define P_SWITCH D4
 
@@ -41,24 +46,26 @@ const String QUERYSTRING = "value=button4";
  */
 void setup() {
   // Set baud rate of the serial connection
-  Serial.begin(115200);
+  if (DEBUGMODE) Serial.begin(115200);
 
   // Set the pin mode of the switch to input
   pinMode(P_SWITCH, INPUT);
 
   // Connecting to the WiFi network
   WiFi.begin(ssid, password);
-  Serial.print("\n:: Connecting ");
+  if (DEBUGMODE) Serial.print("\n:: Connecting ");
 
   // Checking if the ESP8266 is connected to the WiFi network
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    if (DEBUGMODE) Serial.print(".");
   }
 
   // print the IP address of the ESP8266 to the serial monitor
-  Serial.print("\n:: Connected to WiFi network. \n>> ");
-  Serial.print(WiFi.localIP());
+  if (DEBUGMODE) {
+    Serial.print("\n:: Connected to WiFi network. \n>> ");
+    Serial.print(WiFi.localIP())
+  };
 }
 
 /*
@@ -67,14 +74,16 @@ void setup() {
 void loop() {
   // Checking if the button is pressed
   if (!digitalRead(P_SWITCH)) {
-    Serial.print("\n:: Button pushed");
+    if (DEBUGMODE) Serial.print("\n:: Button pushed");
 
     // Connecting to Peppers webserver
     if (client.connect(HOST_NAME, HTTP_PORT)) {
       // Printing the IP address and port number of Pepper
-      Serial.print("\n:: Connected to webserver \n>> ");
-      Serial.print(HOST_NAME);
-      Serial.print("\n>> " + String(HTTP_PORT));
+      if (DEBUGMODE) {
+        Serial.print("\n:: Connected to webserver \n>> ");
+        Serial.print(HOST_NAME);
+        Serial.print("\n>> " + String(HTTP_PORT));
+      }
 
       // Sending the HTTP HEADER to the webserver
       client.println(HTTP_METHOD + " " + PATH_NAME + " " + HTTP_VERSION);
@@ -84,23 +93,25 @@ void loop() {
 
       // Sending the HTTP BODY to the webserver
       client.println(QUERYSTRING);
-      Serial.print("\n>> " + QUERYSTRING + "\n");
+      if (DEBUGMODE) Serial.print("\n>> " + QUERYSTRING + "\n");
 
     } else {
       // print a failure-message to the serial monitor if connection fails
-      Serial.println("\n!! Connection failed");
+      if (DEBUGMODE) Serial.println("\n!! Connection failed");
     }
 
     // Waiting for a response from the webserver
     while (client.connected() && !client.available()) delay(1);
 
     // print the response from the webserver to the serial monitor
-    while (client.available()) {
-      Serial.print(char(client.read()));
+    if (DEBUGMODE) {
+      while (client.available()) {
+        Serial.print(char(client.read()));
+      }
     }
 
     // Closing the connection to the webserver
-    Serial.println("\n:: Disconnecting from webserver");
+    if (DEBUGMODE) Serial.println("\n:: Disconnecting from webserver");
     client.stop();
 
     // Waiting for 2 seconds
