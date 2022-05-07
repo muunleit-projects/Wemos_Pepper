@@ -1,88 +1,112 @@
 /*
-  Malte Wessel
-  Pepper (Softbank Robotics / Entrance Robotics über Knöpfe ansteuern)
+  Control Pepper by wifi-connected d1 mini ESP8266
+  from Malte Wessel
 */
 
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-#define P_SWITCH D4  // Schalter an Pin D4
+// Switch is connected to Pin D4
+#define P_SWITCH D4
 
-// WLAN-Verbindung
-WiFiClient client;             // WiFiClient Objekt erstellen
-const char* ssid = "XXX";      // WiFi Netzwerk
-const char* password = "XXX";  // WiFi Passwort
+/*
+ * WiFi-Connection
+ */
+// Creating a WiFiClient object
+WiFiClient client;
+// SSID of WiFi-Network
+const char* ssid = "XXX";
+// Password (if needed) of WiFi-Network
+const char* password = "XXX";
 
-// Verbindung zu Pepper
-char HOST_NAME[] = "XXX";              // Peppers IP [192.168.178.28]
-int HTTP_PORT = 36000;                 // Port auf den Pepper lauscht [36000]
-String HTTP_METHOD = "POST";           // "GET" oder ["POST"]
-String HTTP_VERSION = "HTTP/1.1";      // Version 1.0 oder [1.1]
-String PATH_NAME = "/";                // PATH-Part of URL
-String QUERYSTRING = "value=button4";  // button 1, 2, 3, 4
+/*
+ * Connection to Pepper
+ */
+// The IP address of Pepper
+const char HOST_NAME[] = "XXX.XXX.XXX.XXX";
+// The port on which Pepper listens
+const int HTTP_PORT = 36000;
+// use HTTP- "GET" or "POST"
+const String HTTP_METHOD = "POST";
+// The HTTP version "1.0" or "1.1"
+const String HTTP_VERSION = "HTTP/1.1";
+// The path to the script on Peppers webserver
+const String PATH_NAME = "/";
+// Sending a value to the server [1, 2, 3, 4]
+const String QUERYSTRING = "value=button4";
 
-// SETUP
+/*
+ * SETUP
+ */
 void setup() {
+  // Set baud rate of the serial connection
   Serial.begin(115200);
+
+  // Set the pin mode of the switch to input
   pinMode(P_SWITCH, INPUT);
 
-  // Stelle WLAN-Verbindung her
+  // Connecting to the WiFi network
   WiFi.begin(ssid, password);
   Serial.print("\n:: Connecting ");
-  // Warte, bis die Verbindung geklappt hat
+
+  // Checking if the ESP8266 is connected to the WiFi network
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  // Infos in der Konsole ausgeben
+
+  // print the IP address of the ESP8266 to the serial monitor
   Serial.print("\n:: Connected to WiFi network. \n>> ");
   Serial.print(WiFi.localIP());
 }
 
-// Hauptprogramm
+/*
+ * Main-Program-Loop
+ */
 void loop() {
-  // Überprüfen ob Knopf gedrückt wurde
+  // Checking if the button is pressed
   if (!digitalRead(P_SWITCH)) {
     Serial.print("\n:: Button pushed");
 
-    // mit Webserver von Pepper verbinden
+    // Connecting to Peppers webserver
     if (client.connect(HOST_NAME, HTTP_PORT)) {
-      // Infos in der Konsole ausgeben
+      // Printing the IP address and port number of Pepper
       Serial.print("\n:: Connected to webserver \n>> ");
       Serial.print(HOST_NAME);
       Serial.print("\n>> " + String(HTTP_PORT));
 
-      // HTTP header an Webserver senden
+      // Sending the HTTP HEADER to the webserver
       client.println(HTTP_METHOD + " " + PATH_NAME + " " + HTTP_VERSION);
       client.println("Content-Type: application/x-www-form-urlencoded");
       client.println("Connection: close");
       client.println();
-      // HTTP body an Webserver senden
+
+      // Sending the HTTP BODY to the webserver
       client.println(QUERYSTRING);
-      // Infos in der Konsole ausgeben
       Serial.print("\n>> " + QUERYSTRING + "\n");
 
     } else {
-      // Bei Verbindungsproblem, Info in die Konsole
+      // print a failure-message to the serial monitor if connection fails
       Serial.println("\n!! Connection failed");
     }
 
-    // auf Antwort vom Webserver warten
+    // Waiting for a response from the webserver
     while (client.connected() && !client.available()) delay(1);
-    // Antwort vom Webserver in der Konsole ausgeben
+
+    // print the response from the webserver to the serial monitor
     while (client.available()) {
       Serial.print(char(client.read()));
     }
 
-    // von Webserver trennen
+    // Closing the connection to the webserver
     Serial.println("\n:: Disconnecting from webserver");
     client.stop();
 
-    // 2 Sekunden warten
+    // Waiting for 2 seconds
     delay(2000);
   }
 
-  // kurze Wartezeit bis der Zustand des Schalters wieder geprüft wird
+  // A short delay until the state of the switch is checked again
   delay(100);
 }
